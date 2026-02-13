@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AgentPanel from './components/AgentPanel';
 import ControlBar from './components/ControlBar';
 import ChatWindow from './components/ChatWindow';
 import CostTracker from './components/CostTracker';
 import { useConversation } from './hooks/useConversation';
+
+const STORAGE_KEY = 'swarmstudio_session';
 
 function createDefaultAgent(id, name, provider, model) {
   return {
@@ -19,14 +21,33 @@ function createDefaultAgent(id, name, provider, model) {
   };
 }
 
-export default function App() {
-  const [agents, setAgents] = useState([
-    createDefaultAgent(1, 'Agent 1', 'openai', 'gpt-4o'),
-    createDefaultAgent(2, 'Agent 2', 'anthropic', 'claude-sonnet-4-20250514'),
-  ]);
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data.agents && Array.isArray(data.agents) && data.agents.length >= 2) {
+      return data;
+    }
+  } catch (e) {
+    console.warn('Failed to load session:', e);
+  }
+  return null;
+}
 
-  const [prompt, setPrompt] = useState('');
-  const [rounds, setRounds] = useState(3);
+export default function App() {
+  const saved = loadSession();
+
+  const [agents, setAgents] = useState(
+    saved?.agents || [
+      createDefaultAgent(1, 'Agent 1', 'openai', 'gpt-4o'),
+      createDefaultAgent(2, 'Agent 2', 'anthropic', 'claude-sonnet-4-20250514'),
+    ]
+  );
+
+  const [prompt, setPrompt] = useState(saved?.prompt || '');
+  const [rounds, setRounds] = useState(saved?.rounds || 3);
+  const [sessionSaved, setSessionSaved] = useState(!!saved);
 
   // Conversation engine
   const {
@@ -38,6 +59,26 @@ export default function App() {
     startConversation,
     stopConversation
   } = useConversation();
+
+  const handleSaveSession = useCallback(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ agents, prompt, rounds }));
+      setSessionSaved(true);
+      setTimeout(() => setSessionSaved(false), 2000);
+    } catch (e) {
+      console.error('Failed to save session:', e);
+    }
+  }, [agents, prompt, rounds]);
+
+  const handleClearSession = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setAgents([
+      createDefaultAgent(1, 'Agent 1', 'openai', 'gpt-4o'),
+      createDefaultAgent(2, 'Agent 2', 'anthropic', 'claude-sonnet-4-20250514'),
+    ]);
+    setPrompt('');
+    setRounds(3);
+  }, []);
 
   const handleUpdateAgent = (id, updates) => {
     setAgents(agents.map(agent => 
@@ -95,6 +136,9 @@ export default function App() {
         currentRound={currentRound}
         totalRounds={rounds}
         currentAgentName={currentAgentName}
+        onSaveSession={handleSaveSession}
+        onClearSession={handleClearSession}
+        sessionSaved={sessionSaved}
       />
 
       <div className="flex-1 flex overflow-hidden">
