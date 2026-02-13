@@ -1,13 +1,25 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ChatMessage from './ChatMessage';
 
 export default function ChatWindow({ messages, currentAgent, currentRound, totalRounds, agents }) {
   const messagesEndRef = useRef(null);
+  const containerRef = useRef(null);
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
 
-  // Auto-scroll to bottom when messages update
+  // Detect if user scrolled away from bottom
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setUserScrolledUp(distanceFromBottom > 80);
+  };
+
+  // Auto-scroll only if user hasn't scrolled up
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!userScrolledUp) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, userScrolledUp]);
 
   if (messages.length === 0) {
     return (
@@ -41,10 +53,9 @@ export default function ChatWindow({ messages, currentAgent, currentRound, total
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={containerRef} onScroll={handleScroll}>
         <div className="py-4 space-y-1">
           {messages.map((message, index) => {
-            // Find agent index for color
             const agentIndex = agents.findIndex(a => a.id === message.agentId);
             const isStreaming = currentAgent === message.agentId && index === messages.length - 1;
             
@@ -60,6 +71,19 @@ export default function ChatWindow({ messages, currentAgent, currentRound, total
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Scroll to bottom button when scrolled up */}
+      {userScrolledUp && messages.length > 0 && (
+        <button
+          onClick={() => {
+            setUserScrolledUp(false);
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="absolute bottom-20 right-8 px-3 py-1.5 bg-dark-card border border-dark-border rounded-full text-xs text-text-secondary hover:text-accent-amber hover:border-accent-amber transition-colors shadow-lg"
+        >
+          ↓ Scroll to bottom
+        </button>
+      )}
     </div>
   );
 }
