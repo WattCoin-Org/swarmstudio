@@ -1,0 +1,50 @@
+export default function ControlBar({ prompt, rounds, onPromptChange, onRoundsChange, onStart, canStart }) {
+  return (
+    <div className="bg-dark-panel border-b border-dark-border p-4">
+      <div className="flex gap-4 items-start">
+        {/* Prompt input */}
+        <div className="flex-1">
+          <textarea
+            value={prompt}
+            onChange={(e) => onPromptChange(e.target.value)}
+            placeholder="Enter your prompt..."
+            rows={2}
+            className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm focus:outline-none focus:border-accent-amber transition-colors placeholder:text-text-muted resize-none"
+          />
+        </div>
+
+        {/* Rounds selector */}
+        <div className="w-32">
+          <label className="block text-xs font-mono text-text-secondary mb-1.5">
+            Rounds
+          </label>
+          <select
+            value={rounds}
+            onChange={(e) => onRoundsChange(parseInt(e.target.value))}
+            className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm focus:outline-none focus:border-accent-amber transition-colors"
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Start button */}
+        <div className="pt-6">
+          <button
+            onClick={onStart}
+            disabled={!canStart}
+            className="px-6 py-2 gradient-accent text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            Start
+          </button>
+        </div>
+      </div>
+
+      {/* Status text */}
+      <div className="mt-3 text-xs text-text-secondary font-mono">
+        {canStart ? 'Ready to start' : 'Configure at least 2 agents with API keys'}
+      </div>
+    </div>
+  );
+}
