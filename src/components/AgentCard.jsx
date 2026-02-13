@@ -22,7 +22,7 @@ export default function AgentCard({ agent, color, onUpdate, onDelete, canDelete 
     setTestResult(null);
 
     try {
-      const result = await testKey(agent.provider, agent.apiKey, agent.baseUrl);
+      const result = await testKey(agent.provider, agent.apiKey, agent.baseUrl, agent.model);
       setTestResult(result);
     } catch (err) {
       setTestResult({ valid: false, message: `Error: ${err.message}` });
