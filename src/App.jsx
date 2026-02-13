@@ -80,6 +80,43 @@ export default function App() {
     setRounds(3);
   }, []);
 
+  const [exportStatus, setExportStatus] = useState('');
+
+  const handleExportConversation = useCallback(() => {
+    if (!messages.length) return;
+
+    let md = `# SwarmStudio Conversation\n\n`;
+    md += `**Prompt:** ${prompt}\n\n`;
+    md += `**Agents:** ${agents.filter(a => a.apiKey).map(a => `${a.name} (${a.provider}/${a.customModel || a.model})`).join(', ')}\n\n`;
+    md += `---\n\n`;
+
+    let lastRound = 0;
+    for (const msg of messages) {
+      if (msg.round !== lastRound) {
+        lastRound = msg.round;
+        md += `## Round ${msg.round}\n\n`;
+      }
+      md += `### ${msg.agentName}\n\n${msg.content}\n\n`;
+    }
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(md).then(() => {
+      setExportStatus('copied');
+      setTimeout(() => setExportStatus(''), 2000);
+    }).catch(() => {
+      // Fallback: download as file
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `swarmstudio-${new Date().toISOString().slice(0,10)}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportStatus('downloaded');
+      setTimeout(() => setExportStatus(''), 2000);
+    });
+  }, [messages, prompt, agents]);
+
   const handleUpdateAgent = (id, updates) => {
     setAgents(agents.map(agent => 
       agent.id === id ? { ...agent, ...updates } : agent
@@ -139,6 +176,9 @@ export default function App() {
         onSaveSession={handleSaveSession}
         onClearSession={handleClearSession}
         sessionSaved={sessionSaved}
+        onExport={handleExportConversation}
+        exportStatus={exportStatus}
+        hasMessages={messages.length > 0}
       />
 
       <div className="flex-1 flex overflow-hidden">

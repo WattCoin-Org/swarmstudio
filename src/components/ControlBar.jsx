@@ -12,7 +12,10 @@ export default function ControlBar({
   currentAgentName,
   onSaveSession,
   onClearSession,
-  sessionSaved
+  sessionSaved,
+  onExport,
+  exportStatus,
+  hasMessages
 }) {
   return (
     <div className="bg-dark-panel border-b border-dark-border p-4">
@@ -81,6 +84,15 @@ export default function ControlBar({
             title="Clear saved session and reset"
           >
             Clear
+          </button>
+
+          <button
+            onClick={onExport}
+            disabled={!hasMessages || isRunning}
+            className="px-3 py-2 bg-dark-card border border-dark-border text-text-secondary rounded-lg text-sm hover:text-green-400 hover:border-green-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            title="Copy conversation as markdown"
+          >
+            {exportStatus === 'copied' ? '✓ Copied' : exportStatus === 'downloaded' ? '✓ Downloaded' : 'Export'}
           </button>
         </div>
       </div>
