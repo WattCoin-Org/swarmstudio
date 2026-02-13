@@ -98,6 +98,9 @@ export default function AgentCard({ agent, color, onUpdate, onDelete, canDelete 
                 value={agent.apiKey || ''}
                 onChange={(e) => onUpdate({ apiKey: e.target.value })}
                 placeholder={provider?.placeholder || 'your-api-key'}
+                autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
                 className="w-full px-3 py-2 pr-20 bg-dark-bg border border-dark-border rounded-lg text-sm focus:outline-none focus:border-accent-amber transition-colors placeholder:text-text-muted"
               />
               <button
