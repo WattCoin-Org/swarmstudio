@@ -3,6 +3,7 @@ import AgentPanel from './components/AgentPanel';
 import ControlBar from './components/ControlBar';
 import ChatWindow from './components/ChatWindow';
 import CostTracker from './components/CostTracker';
+import { useConversation } from './hooks/useConversation';
 
 function createDefaultAgent(id, name, provider, model) {
   return {
@@ -26,6 +27,17 @@ export default function App() {
 
   const [prompt, setPrompt] = useState('');
   const [rounds, setRounds] = useState(3);
+
+  // Conversation engine
+  const {
+    messages,
+    isRunning,
+    currentAgent,
+    currentRound,
+    usage,
+    startConversation,
+    stopConversation
+  } = useConversation();
 
   const handleUpdateAgent = (id, updates) => {
     setAgents(agents.map(agent => 
@@ -52,14 +64,22 @@ export default function App() {
   };
 
   const handleStart = () => {
-    // Placeholder for Task C
-    console.log('Start conversation:', { prompt, rounds, agents });
-    alert('Conversation engine not implemented yet (Task C)');
+    if (!canStart) return;
+    startConversation(agents, prompt, rounds);
+  };
+
+  const handleStop = () => {
+    stopConversation();
   };
 
   // Check if at least 2 agents have API keys
   const agentsWithKeys = agents.filter(a => a.apiKey && a.apiKey.trim()).length;
-  const canStart = agentsWithKeys >= 2 && prompt.trim();
+  const canStart = agentsWithKeys >= 2 && prompt.trim() && !isRunning;
+
+  // Get current agent name for status display
+  const currentAgentName = currentAgent 
+    ? agents.find(a => a.id === currentAgent)?.name 
+    : null;
 
   return (
     <div className="h-screen flex flex-col bg-dark-bg">
@@ -69,7 +89,12 @@ export default function App() {
         onPromptChange={setPrompt}
         onRoundsChange={setRounds}
         onStart={handleStart}
+        onStop={handleStop}
         canStart={canStart}
+        isRunning={isRunning}
+        currentRound={currentRound}
+        totalRounds={rounds}
+        currentAgentName={currentAgentName}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -80,10 +105,19 @@ export default function App() {
           onDeleteAgent={handleDeleteAgent}
         />
 
-        <ChatWindow />
+        <ChatWindow
+          messages={messages}
+          currentAgent={currentAgent}
+          currentRound={currentRound}
+          totalRounds={rounds}
+          agents={agents}
+        />
       </div>
 
-      <CostTracker />
+      <CostTracker
+        agents={agents}
+        usage={usage}
+      />
     </div>
   );
 }

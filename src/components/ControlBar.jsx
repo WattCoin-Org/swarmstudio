@@ -1,4 +1,16 @@
-export default function ControlBar({ prompt, rounds, onPromptChange, onRoundsChange, onStart, canStart }) {
+export default function ControlBar({ 
+  prompt, 
+  rounds, 
+  onPromptChange, 
+  onRoundsChange, 
+  onStart, 
+  onStop,
+  canStart,
+  isRunning,
+  currentRound,
+  totalRounds,
+  currentAgentName
+}) {
   return (
     <div className="bg-dark-panel border-b border-dark-border p-4">
       <div className="flex gap-4 items-start">
@@ -9,7 +21,8 @@ export default function ControlBar({ prompt, rounds, onPromptChange, onRoundsCha
             onChange={(e) => onPromptChange(e.target.value)}
             placeholder="Enter your prompt..."
             rows={2}
-            className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm focus:outline-none focus:border-accent-amber transition-colors placeholder:text-text-muted resize-none"
+            disabled={isRunning}
+            className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm focus:outline-none focus:border-accent-amber transition-colors placeholder:text-text-muted resize-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -21,7 +34,8 @@ export default function ControlBar({ prompt, rounds, onPromptChange, onRoundsCha
           <select
             value={rounds}
             onChange={(e) => onRoundsChange(parseInt(e.target.value))}
-            className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm focus:outline-none focus:border-accent-amber transition-colors"
+            disabled={isRunning}
+            className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm focus:outline-none focus:border-accent-amber transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
               <option key={n} value={n}>{n}</option>
@@ -29,21 +43,39 @@ export default function ControlBar({ prompt, rounds, onPromptChange, onRoundsCha
           </select>
         </div>
 
-        {/* Start button */}
+        {/* Start/Stop button */}
         <div className="pt-6">
-          <button
-            onClick={onStart}
-            disabled={!canStart}
-            className="px-6 py-2 gradient-accent text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-          >
-            Start
-          </button>
+          {!isRunning ? (
+            <button
+              onClick={onStart}
+              disabled={!canStart}
+              className="px-6 py-2 gradient-accent text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              Start
+            </button>
+          ) : (
+            <button
+              onClick={onStop}
+              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+            >
+              Stop
+            </button>
+          )}
         </div>
       </div>
 
       {/* Status text */}
       <div className="mt-3 text-xs text-text-secondary font-mono">
-        {canStart ? 'Ready to start' : 'Configure at least 2 agents with API keys'}
+        {isRunning ? (
+          <span>
+            Round {currentRound} of {totalRounds}
+            {currentAgentName && <span className="text-accent-amber"> — {currentAgentName} responding...</span>}
+          </span>
+        ) : canStart ? (
+          'Ready to start'
+        ) : (
+          'Configure at least 2 agents with API keys'
+        )}
       </div>
     </div>
   );
