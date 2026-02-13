@@ -12,7 +12,7 @@ export const PROVIDERS = {
     placeholder: "sk-ant-...",
     help: "https://console.anthropic.com/settings/keys",
     baseUrl: "https://api.anthropic.com/v1",
-    models: ["claude-sonnet-4-20250514", "claude-opus-4-5-20250918", "claude-haiku-4-5-20251001"],
+    models: ["claude-opus-4-6", "claude-sonnet-4-20250514", "claude-opus-4-5-20250918", "claude-haiku-4-5-20251001"],
     adapter: "anthropic",
     noRefresh: true
   },
@@ -21,7 +21,7 @@ export const PROVIDERS = {
     placeholder: "xai-...",
     help: "https://console.x.ai/",
     baseUrl: "https://api.x.ai/v1",
-    models: ["grok-3", "grok-3-fast", "grok-3-mini", "grok-3-mini-fast"],
+    models: ["grok-3", "grok-3-fast", "grok-3-mini", "grok-3-mini-fast", "grok-code-fast-1", "grok-4-fast-reasoning", "grok-4-1-fast-reasoning", "grok-4-1-fast-non-reasoning"],
     adapter: "openai-compatible"
   },
   google: {
