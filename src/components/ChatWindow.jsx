@@ -56,7 +56,7 @@ export default function ChatWindow({ messages, currentAgent, currentRound, total
       <div className="flex-1 overflow-y-auto" ref={containerRef} onScroll={handleScroll}>
         <div className="py-4 space-y-1">
           {messages.map((message, index) => {
-            const agentIndex = agents.findIndex(a => a.id === message.agentId);
+            const agentIndex = message.isReferee ? -1 : agents.findIndex(a => a.id === message.agentId);
             const isStreaming = currentAgent === message.agentId && index === messages.length - 1;
             
             return (
