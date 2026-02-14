@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PRICING, estimateCost } from '../config/pricing';
 import { PROVIDERS } from '../config/providers';
 
-export default function CostTracker({ agents, usage }) {
+export default function CostTracker({ agents, usage, referee }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Calculate total cost
@@ -10,7 +10,14 @@ export default function CostTracker({ agents, usage }) {
   let totalOutputTokens = 0;
   let totalCost = 0;
 
-  const agentCosts = agents.map(agent => {
+  // Build combined list: agents + referee (if it has usage)
+  const allEntries = [...agents];
+  const refereeUsage = usage['__referee__'];
+  if (referee && refereeUsage && (refereeUsage.inputTokens > 0 || refereeUsage.outputTokens > 0)) {
+    allEntries.push({ ...referee, id: '__referee__', isReferee: true });
+  }
+
+  const agentCosts = allEntries.map(agent => {
     const agentUsage = usage[agent.id] || { inputTokens: 0, outputTokens: 0 };
     const model = agent.customModel || agent.model;
     const cost = estimateCost(model, agentUsage.inputTokens, agentUsage.outputTokens);
@@ -80,8 +87,8 @@ export default function CostTracker({ agents, usage }) {
                   </tr>
                 )}
                 {hasData && agentCosts.map(({ agent, usage, cost }) => (
-                  <tr key={agent.id} className="border-b border-dark-border/50">
-                    <td className="py-2">{agent.name}</td>
+                  <tr key={agent.id} className={`border-b border-dark-border/50 ${agent.isReferee ? 'text-yellow-400/80' : ''}`}>
+                    <td className="py-2">{agent.isReferee ? `⚖️ ${agent.name}` : agent.name}</td>
                     <td className="py-2">{PROVIDERS[agent.provider]?.name || agent.provider}</td>
                     <td className="py-2 font-mono text-xs">{agent.customModel || agent.model}</td>
                     <td className="py-2 text-right font-mono">{usage.inputTokens.toLocaleString()}</td>
