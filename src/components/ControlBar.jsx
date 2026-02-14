@@ -5,8 +5,11 @@ export default function ControlBar({
   onRoundsChange, 
   onStart, 
   onStop,
+  onResolve,
   canStart,
+  canResolve,
   isRunning,
+  isResolving,
   currentRound,
   totalRounds,
   currentAgentName,
@@ -51,7 +54,7 @@ export default function ControlBar({
 
         {/* Action buttons */}
         <div className="pt-6 flex gap-2">
-          {!isRunning ? (
+          {!isRunning && !isResolving ? (
             <button
               onClick={onStart}
               disabled={!canStart}
@@ -62,11 +65,21 @@ export default function ControlBar({
           ) : (
             <button
               onClick={onStop}
-              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+              disabled={isResolving}
+              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors whitespace-nowrap disabled:opacity-50"
             >
               Stop
             </button>
           )}
+
+          <button
+            onClick={onResolve}
+            disabled={!canResolve}
+            className="px-5 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            title={canResolve ? 'Send debate to referee for resolution' : 'Configure a referee with an API key and run a debate first'}
+          >
+            {isResolving ? '⏳ Resolving...' : '⚖️ Resolve'}
+          </button>
 
           <button
             onClick={onSaveSession}
@@ -99,7 +112,9 @@ export default function ControlBar({
 
       {/* Status text */}
       <div className="mt-3 text-xs text-text-secondary font-mono">
-        {isRunning ? (
+        {isResolving ? (
+          <span className="text-yellow-400">⚖️ Referee is resolving the debate...</span>
+        ) : isRunning ? (
           <span>
             Round {currentRound} of {totalRounds}
             {currentAgentName && <span className="text-accent-amber"> — {currentAgentName} responding...</span>}
