@@ -4,6 +4,7 @@ import { streamChat } from '../utils/api';
 export function useConversation() {
   const [messages, setMessages] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
   const [currentAgent, setCurrentAgent] = useState(null);
   const [currentRound, setCurrentRound] = useState(0);
   const [usage, setUsage] = useState({});
@@ -178,13 +179,127 @@ export function useConversation() {
     }
   }, []);
 
+  const resolveConversation = useCallback(async (referee, agents, initialPrompt) => {
+    if (!referee || !referee.apiKey || messages.length === 0) return;
+
+    setIsResolving(true);
+    const refereeAgentId = '__referee__';
+    setCurrentAgent(refereeAgentId);
+
+    // Build transcript for the referee
+    let transcript = `**Original Prompt:** ${initialPrompt}\n\n`;
+    transcript += `**Participants:**\n`;
+    agents.filter(a => a.apiKey).forEach(a => {
+      transcript += `- ${a.name} (${a.provider}/${a.customModel || a.model})\n`;
+    });
+    transcript += `\n**Debate Transcript:**\n\n`;
+
+    let lastRound = 0;
+    for (const msg of messages) {
+      if (msg.agentId === refereeAgentId) continue; // skip any previous resolution
+      if (msg.round !== lastRound) {
+        lastRound = msg.round;
+        transcript += `--- Round ${msg.round} ---\n\n`;
+      }
+      transcript += `**${msg.agentName}:**\n${msg.content}\n\n`;
+    }
+
+    const refereeMessages = [];
+    
+    // System prompt (user's custom or default)
+    const defaultSystemPrompt = `You are the Referee — an impartial judge resolving a multi-agent AI debate. Analyze the full conversation transcript, then deliver:
+
+1. **Winner** — Which agent made the strongest overall case? (or declare a draw if warranted)
+2. **Key Agreements** — Points all agents converged on
+3. **Key Disagreements** — Unresolved differences and who had the stronger argument on each
+4. **Final Verdict** — Your authoritative summary and conclusion on the original question
+
+Be decisive. Support your ruling with specific references to what each agent said.`;
+
+    refereeMessages.push({
+      role: 'system',
+      content: referee.systemPrompt || defaultSystemPrompt
+    });
+
+    refereeMessages.push({
+      role: 'user',
+      content: `Please resolve this debate:\n\n${transcript}`
+    });
+
+    // Create referee message in chat
+    const messageId = `msg_referee_${Date.now()}`;
+    const newMessage = {
+      id: messageId,
+      agentId: refereeAgentId,
+      agentName: referee.name || 'Referee',
+      content: '',
+      role: 'assistant',
+      round: 'resolve',
+      isReferee: true
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    currentMessageRef.current = '';
+
+    // Initialize referee usage
+    setUsage(prev => ({
+      ...prev,
+      [refereeAgentId]: { inputTokens: 0, outputTokens: 0 }
+    }));
+
+    try {
+      await streamChat(
+        referee.provider,
+        referee.customModel || referee.model,
+        referee.apiKey,
+        referee.baseUrl || '',
+        refereeMessages,
+        4096,
+        // onToken
+        (token) => {
+          currentMessageRef.current += token;
+          setMessages(prev => prev.map(m =>
+            m.id === messageId
+              ? { ...m, content: currentMessageRef.current }
+              : m
+          ));
+        },
+        // onUsage
+        (inputTokens, outputTokens) => {
+          setUsage(prev => ({
+            ...prev,
+            [refereeAgentId]: {
+              inputTokens: (prev[refereeAgentId]?.inputTokens || 0) + inputTokens,
+              outputTokens: (prev[refereeAgentId]?.outputTokens || 0) + outputTokens
+            }
+          }));
+        },
+        // onDone
+        () => {},
+        // onError
+        (error) => {
+          setMessages(prev => prev.map(m =>
+            m.id === messageId
+              ? { ...m, content: `[Referee Error: ${error}]`, error: true }
+              : m
+          ));
+        }
+      );
+    } finally {
+      setIsResolving(false);
+      setCurrentAgent(null);
+    }
+  }, [messages]);
+
   return {
     messages,
     isRunning,
+    isResolving,
     currentAgent,
     currentRound,
     usage,
     startConversation,
-    stopConversation
+    stopConversation,
+    resolveConversation
   };
 }
