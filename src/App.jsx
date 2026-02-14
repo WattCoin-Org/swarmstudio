@@ -45,6 +45,10 @@ export default function App() {
     ]
   );
 
+  const [referee, setReferee] = useState(
+    saved?.referee || createDefaultAgent('referee', 'Referee', 'openai', 'gpt-4o')
+  );
+
   const [prompt, setPrompt] = useState(saved?.prompt || '');
   const [rounds, setRounds] = useState(saved?.rounds || 3);
   const [sessionSaved, setSessionSaved] = useState(!!saved);
@@ -53,22 +57,24 @@ export default function App() {
   const {
     messages,
     isRunning,
+    isResolving,
     currentAgent,
     currentRound,
     usage,
     startConversation,
-    stopConversation
+    stopConversation,
+    resolveConversation
   } = useConversation();
 
   const handleSaveSession = useCallback(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ agents, prompt, rounds }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ agents, referee, prompt, rounds }));
       setSessionSaved(true);
       setTimeout(() => setSessionSaved(false), 2000);
     } catch (e) {
       console.error('Failed to save session:', e);
     }
-  }, [agents, prompt, rounds]);
+  }, [agents, referee, prompt, rounds]);
 
   const handleClearSession = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
@@ -76,6 +82,7 @@ export default function App() {
       createDefaultAgent(1, 'Agent 1', 'openai', 'gpt-4o'),
       createDefaultAgent(2, 'Agent 2', 'anthropic', 'claude-sonnet-4-20250514'),
     ]);
+    setReferee(createDefaultAgent('referee', 'Referee', 'openai', 'gpt-4o'));
     setPrompt('');
     setRounds(3);
   }, []);
@@ -88,10 +95,17 @@ export default function App() {
     let md = `# SwarmStudio Conversation\n\n`;
     md += `**Prompt:** ${prompt}\n\n`;
     md += `**Agents:** ${agents.filter(a => a.apiKey).map(a => `${a.name} (${a.provider}/${a.customModel || a.model})`).join(', ')}\n\n`;
+    if (referee.apiKey) {
+      md += `**Referee:** ${referee.name || 'Referee'} (${referee.provider}/${referee.customModel || referee.model})\n\n`;
+    }
     md += `---\n\n`;
 
     let lastRound = 0;
     for (const msg of messages) {
+      if (msg.isReferee) {
+        md += `## 🏆 Referee Resolution\n\n${msg.content}\n\n`;
+        continue;
+      }
       if (msg.round !== lastRound) {
         lastRound = msg.round;
         md += `## Round ${msg.round}\n\n`;
@@ -150,6 +164,15 @@ export default function App() {
     stopConversation();
   };
 
+  const handleUpdateReferee = (updates) => {
+    setReferee(prev => ({ ...prev, ...updates }));
+  };
+
+  const handleResolve = () => {
+    if (!referee.apiKey || messages.length === 0 || isRunning || isResolving) return;
+    resolveConversation(referee, agents, prompt);
+  };
+
   // Check if at least 2 agents have API keys
   const agentsWithKeys = agents.filter(a => a.apiKey && a.apiKey.trim()).length;
   const canStart = agentsWithKeys >= 2 && prompt.trim() && !isRunning;
@@ -168,8 +191,11 @@ export default function App() {
         onRoundsChange={setRounds}
         onStart={handleStart}
         onStop={handleStop}
+        onResolve={handleResolve}
         canStart={canStart}
+        canResolve={!!(referee.apiKey && referee.apiKey.trim() && messages.length > 0 && !isRunning && !isResolving)}
         isRunning={isRunning}
+        isResolving={isResolving}
         currentRound={currentRound}
         totalRounds={rounds}
         currentAgentName={currentAgentName}
@@ -187,6 +213,8 @@ export default function App() {
           onUpdateAgent={handleUpdateAgent}
           onAddAgent={handleAddAgent}
           onDeleteAgent={handleDeleteAgent}
+          referee={referee}
+          onUpdateReferee={handleUpdateReferee}
         />
 
         <ChatWindow
@@ -201,6 +229,7 @@ export default function App() {
       <CostTracker
         agents={agents}
         usage={usage}
+        referee={referee}
       />
     </div>
   );
