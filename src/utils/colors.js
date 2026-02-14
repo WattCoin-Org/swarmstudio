@@ -9,6 +9,8 @@ export const AGENT_COLORS = [
   "#84CC16", // lime
 ];
 
+export const REFEREE_COLOR = "#FACC15"; // yellow-gold (distinct from agent amber)
+
 export function getAgentColor(index) {
   return AGENT_COLORS[index % AGENT_COLORS.length];
 }
