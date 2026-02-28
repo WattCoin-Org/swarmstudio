@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import AgentPanel from './components/AgentPanel';
 import ControlBar from './components/ControlBar';
 import ChatWindow from './components/ChatWindow';
@@ -231,6 +232,7 @@ export default function App() {
         usage={usage}
         referee={referee}
       />
+      <Analytics />
     </div>
   );
 }
